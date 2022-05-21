@@ -9,6 +9,8 @@ from crypt_decrypt import AESCipher
 from interface import *
 from new_Password import Ui_newPasswordContainer
 
+import pyperclip
+
 import requests
 import json
 
@@ -29,7 +31,10 @@ class ApplicationWindow(QMainWindow):
         QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(MainWindow=self)
+
         self.new_pass_json = []  # json format e.g. [{}, {}, {}]
+        self.in_db_pass_json = []
+
         self.all_passwords = []
         self.cipher = AESCipher("1234")
 
@@ -66,14 +71,19 @@ class ApplicationWindow(QMainWindow):
         new_pass.login_name_input.returnPressed.connect(lambda: self.password_activated("login_name", pass_len))
         new_pass.password_input.returnPressed.connect(lambda: self.password_activated("password", pass_len))
 
+        new_pass.sait_copy_btn.clicked.connect(lambda: self.copy_to_clipboard(new_pass.sait_input))
+        new_pass.login_copy_btn.clicked.connect(lambda: self.copy_to_clipboard(new_pass.login_name_input))
+        new_pass.password_copy_btn.clicked.connect(lambda: self.copy_to_clipboard(new_pass.password_input))
+
+        new_pass.password_visibility_btn.clicked.connect(lambda: self.visibility_btn_clicked(new_pass))
+
         self.all_passwords.append(new_pass)
 
         if not self.loading_mode:
             self.new_pass_json.append({"sait": "", "login_name": "", "password": ""})
         new_pass.show()
 
-    def password_activated(self, line_type, index):
-        old_pass_dict = self.new_pass_json[index].copy()  # old_pass_dict: dict
+    def password_activated(self, line_type: str, index: int):
         if line_type == "sait":
             self.new_pass_json[index]["sait"] = self.cipher.encrypt(self.all_passwords[index].sait_input.text())  # noqa
         elif line_type == "login_name":
@@ -87,19 +97,6 @@ class ApplicationWindow(QMainWindow):
         else:
             raise ValueError("given wrong argument line_type")
         print(self.new_pass_json)
-        if self.cipher.encrypt("") not in old_pass_dict.values():  # noqa
-            if self.cipher.encrypt("") not in self.new_pass_json[index] and old_pass_dict != self.new_pass_json[index]:
-                temp_dict = dict(set(self.new_pass_json[index].items()) - set(old_pass_dict.items()))  # noqa
-                print(f"temp_dict = {temp_dict}")
-                for key, value in temp_dict.items():
-                    old_pass_dict["which_attribute"] = key  # noqa
-                    old_pass_dict["updated_attribute"] = value  # noqa
-                    print(f"patchin {old_pass_dict}")
-                    requests.patch(url, json.dumps(old_pass_dict), headers=headers)
-
-        elif len(self.new_pass_json) != 0 and self.cipher.encrypt("") not in self.new_pass_json[index]:
-            print("Sending lolypops")  # TODO remove or make smarter
-            return requests.post(url, json.dumps(self.new_pass_json[index]), headers=headers).json()
 
     def render_old_passwords(self):
         self.new_pass_json = requests.get(url).json()
@@ -118,6 +115,7 @@ class ApplicationWindow(QMainWindow):
 
         # end of function
         self.loading_mode = False
+        self.in_db_pass_json = self.new_pass_json.copy()
 
     def is_there_empty_passwordContainer(self):  # noqa
         print(self.new_pass_json)
@@ -125,6 +123,40 @@ class ApplicationWindow(QMainWindow):
             if "" in pass_dict.values():
                 return True
         return False
+
+    def submit_btn_clicked(self, index: int):
+        if self.cipher.encrypt("") not in old_pass_dict.values():  # noqa
+            if self.cipher.encrypt("") not in self.new_pass_json[index] and self.in_db_pass_dict[index] != self.new_pass_json[index]:
+                temp_dict = dict(set(self.new_pass_json[index].items()) - set(self.in_db_pass_dict[index].items()))
+                print(f"temp_dict = {temp_dict}")
+                responce_dict = self.in_db_pass_json[index].copy()
+                for key, value in temp_dict.items():
+                    responce_dict["which_attribute"] = key
+                    responce_dict["updated_attribute"] = value
+                    print(f"patchin {responce_dict}")
+                    requests.patch(url, json.dumps(responce_dict), headers=headers)
+
+        elif len(self.new_pass_json) != 0 and self.cipher.encrypt("") not in self.new_pass_json[index]:
+            print("Sending lolypops")  # TODO remove or make smarter
+            return requests.post(url, json.dumps(self.new_pass_json[index]), headers=headers).json()
+
+    @staticmethod
+    def visibility_btn_clicked(pass_container):
+        icon = QIcon()
+        if pass_container.password_visibility_btn.isActive:
+            icon.addPixmap(QtGui.QPixmap(":/icons/icons/eye.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            pass_container.password_input.setEchoMode(QtWidgets.QLineEdit.Normal)
+        else:
+            pass_container.password_input.setEchoMode(QtWidgets.QLineEdit.Password)
+            icon.addPixmap(QtGui.QPixmap(":/icons/icons/eye-off.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        pass_container.password_visibility_btn.isActive = not pass_container.password_visibility_btn.isActive
+        pass_container.password_visibility_btn.setIcon(icon)
+
+    @staticmethod
+    def copy_to_clipboard(edit_line: QLineEdit):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(edit_line.text(), mode=clipboard.Clipboard)
+        print(f"Copying {edit_line.text()} to clipboard")
 
 
 if __name__ == "__main__":
