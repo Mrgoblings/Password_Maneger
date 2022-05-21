@@ -1,0 +1,12 @@
+Flask
+Flask-RESTful==0.3.9
+requests
+mysql-connector
+
+pyqt5
+PySide2
+PyQt5-tools
+QT-PyQt-PySide-Custom-Widgets==0.6.0
+
+py-pbkdf2
+pycryptodome
