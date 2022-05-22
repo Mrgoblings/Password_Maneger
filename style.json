@@ -1,0 +1,127 @@
+{
+	"QMainWindow":[
+		{
+			"tittle":"PassManager200",
+			"icon":":/icons/icons/triangle.svg",
+			"frameless": true,
+			"transluscentBg": true,
+			"sizeGrip": "size_grip",
+			"navigation":[
+				{
+					"minimize":"minimiseBtn",
+					"close": "closeBtn",
+					"restore":[
+						{
+							"buttonName": "restoreBtn",
+							"normalIcon": ":/icons/icons/square.svg",
+							"maximizedIcon": ":/icons/icons/copy.svg"
+						}
+					],
+					"moveWindow": "headerContainer",
+					"tittleBar": "headerContainer"
+				}
+			]
+		}
+	],
+	"QCustomSlideMenu": [
+		{
+			"name": "leftMenuContainer",
+			"defaultSize": [{
+				"width": 45,
+				"height": "parent"
+			}],
+			"collapsedSize": [{
+				"width": 45,
+				"height": "parent"
+			}],
+			"expandedSize": [{
+				"width": 150,
+				"height": "parent"
+			}],
+			"toggleButton": [{
+				"buttonName": "menuBtn",
+				"icons": [{
+					"whenMenuIsCollapsed": ":/icons/icons/align-justify.svg",
+					"whenMenuIsExpanded": ":/icons/icons/chevron-left.svg"
+				}]
+			}],
+			"menuTransitionAnimation": [{
+				"animationDuration": 500,
+				"animationEasingCurve": "Linear"
+			}]
+		},
+		{
+			"name": "centralMenuContainer",
+			"defaultSize": [{
+				"width": 0,
+				"height": "parent"
+			}],
+			"collapsedSize": [{
+				"width": 0,
+				"height": "parent"
+			}],
+			"expandedSize": [{
+				"width": 200,
+				"height": "parent"
+			}],
+			"menuTransitionAnimation": [{
+				"animationDuration": 500,
+				"animationEasingCurve": "Linear"
+			}]
+		}
+	],
+	"QStackedWidget":[
+		{
+			"name":"mainPages",
+			"navigation":[
+				{
+					"navigationButtons":[
+						{
+							"homeBtn": "homeLoginPage",
+							"passwordsBtn": "passwordsPage",
+							"accountBtn": "account_page"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name":"menuPages",
+			"navigation":[
+				{
+					"navigationButtons":[
+						{
+							"settingsBtn": "page_Settings",
+							"helpBtn": "page_Help",
+							"infoBtn": "page_Info"
+						}
+					]
+				}
+			]
+		}
+	],
+	"QPushButtonGroup": [
+		{
+			"Buttons": [
+				"homeBtn",
+				"passwordsBtn",
+				"accountBtn"
+			],
+			"Style":[{
+				"Active": "background-color: #2c313c;",
+				"NotActive": ""
+			}]
+		},
+		{
+			"Buttons": [
+				"settingsBtn",
+				"infoBtn",
+				"helpBtn"
+			],
+			"Style":[{
+				"Active": "background-color: #2c313c;",
+				"NotActive": ""
+			}]
+		}
+	]
+}

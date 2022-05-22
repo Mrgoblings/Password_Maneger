@@ -9,7 +9,7 @@ from crypt_decrypt import AESCipher
 from interface import *
 from new_Password import Ui_newPasswordContainer
 
-import pyperclip
+import copy
 
 import requests
 import json
@@ -52,14 +52,12 @@ class ApplicationWindow(QMainWindow):
         self.ui.infoBtn.clicked.connect(lambda: self.ui.centralMenuContainer.expandMenu())
         # Close centralMenu
         self.ui.closeCentralMenuBtn.clicked.connect(lambda: self.ui.centralMenuContainer.collapseMenu())
-        self.ui.addPassBtn.clicked.connect(lambda: self.insert_passwort())
+        self.ui.addPassBtn.clicked.connect(lambda: self.insert_password())
 
-    def insert_passwort(self):
-        if self.is_there_empty_passwordContainer() and not self.loading_mode:
-            self.password_activated("all", len(self.all_passwords) - 1)
-
-            if self.is_there_empty_passwordContainer():
-                raise AttributeError("Unfilled containers")
+    def insert_password(self):
+        if self.in_db_pass_json != self.new_pass_json and not self.loading_mode:
+            # print(set(self.in_db_pass_json)^set(self.new_pass_json))
+            raise ValueError("Unsubmitted containers")
 
         new_pass = NewPassword(len(self.all_passwords))
         self.ui.verticalLayout_14.addWidget(new_pass, 3, QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
@@ -76,11 +74,12 @@ class ApplicationWindow(QMainWindow):
         new_pass.password_copy_btn.clicked.connect(lambda: self.copy_to_clipboard(new_pass.password_input))
 
         new_pass.password_visibility_btn.clicked.connect(lambda: self.visibility_btn_clicked(new_pass))
+        new_pass.submit_btn.clicked.connect(lambda: self.submit_btn_clicked(pass_len))
 
         self.all_passwords.append(new_pass)
 
         if not self.loading_mode:
-            self.new_pass_json.append({"sait": "", "login_name": "", "password": ""})
+            self.new_pass_json.append({"sait": self.cipher.encrypt(""), "login_name": self.cipher.encrypt(""), "password": self.cipher.encrypt("")})
         new_pass.show()
 
     def password_activated(self, line_type: str, index: int):
@@ -96,7 +95,9 @@ class ApplicationWindow(QMainWindow):
             self.new_pass_json[index]["password"] = self.cipher.encrypt(self.all_passwords[index].password_input.text())  # noqa
         else:
             raise ValueError("given wrong argument line_type")
-        print(self.new_pass_json)
+        print("the jsons:\n\n")
+        print(self.new_pass_json[index])
+        print(self.in_db_pass_json[index])
 
     def render_old_passwords(self):
         self.new_pass_json = requests.get(url).json()
@@ -106,39 +107,48 @@ class ApplicationWindow(QMainWindow):
             self.new_pass_json = []
             raise ConnectionError(exception)
 
-        temp_pass_json = self.new_pass_json.copy()
-        for elem in temp_pass_json:
-            self.insert_passwort()
+        for elem in self.new_pass_json:
+            self.insert_password()
             self.all_passwords[len(self.all_passwords) - 1].sait_input.setText(self.cipher.decrypt(elem["sait"]))
             self.all_passwords[len(self.all_passwords) - 1].login_name_input.setText(self.cipher.decrypt(elem["login_name"]))
             self.all_passwords[len(self.all_passwords) - 1].password_input.setText(self.cipher.decrypt(elem["password"]))
 
         # end of function
         self.loading_mode = False
-        self.in_db_pass_json = self.new_pass_json.copy()
+        self.in_db_pass_json = copy.deepcopy(self.new_pass_json)
 
-    def is_there_empty_passwordContainer(self):  # noqa
-        print(self.new_pass_json)
-        for pass_dict in self.new_pass_json:
-            if "" in pass_dict.values():
+    def is_there_empty_passwordContainer(self, index: int):  # noqa
+        for elem in self.new_pass_json[index].values():
+            if "" is self.cipher.decrypt(elem):
                 return True
+            print(f"elem = {elem}")
         return False
 
     def submit_btn_clicked(self, index: int):
-        if self.cipher.encrypt("") not in old_pass_dict.values():  # noqa
-            if self.cipher.encrypt("") not in self.new_pass_json[index] and self.in_db_pass_dict[index] != self.new_pass_json[index]:
-                temp_dict = dict(set(self.new_pass_json[index].items()) - set(self.in_db_pass_dict[index].items()))
+        # if self.cipher.encrypt("") not in old_pass_dict[index].values():
+        print(f"We are here at  index {index}")
+        try:
+            if not self.is_there_empty_passwordContainer(index) and self.in_db_pass_json[index] != self.new_pass_json[index]:
+                temp_dict = dict(set(self.new_pass_json[index].items()) - set(self.in_db_pass_json[index].items()))
                 print(f"temp_dict = {temp_dict}")
-                responce_dict = self.in_db_pass_json[index].copy()
+                response_dict = self.in_db_pass_json[index].copy()
                 for key, value in temp_dict.items():
-                    responce_dict["which_attribute"] = key
-                    responce_dict["updated_attribute"] = value
-                    print(f"patchin {responce_dict}")
-                    requests.patch(url, json.dumps(responce_dict), headers=headers)
+                    response_dict["which_attribute"] = key
+                    response_dict["updated_attribute"] = value
+                    print(f"patchin {response_dict}")
+                    print(requests.patch(url, json.dumps(response_dict), headers=headers))
+            else:
+                print(self.new_pass_json[index])
+                raise ValueError("Unable to submit")
 
-        elif len(self.new_pass_json) != 0 and self.cipher.encrypt("") not in self.new_pass_json[index]:
-            print("Sending lolypops")  # TODO remove or make smarter
-            return requests.post(url, json.dumps(self.new_pass_json[index]), headers=headers).json()
+        except IndexError:
+            if len(self.new_pass_json) != 0 and not self.is_there_empty_passwordContainer(index):
+                print("Sending lolypops")  # TODO remove or make smarter
+                self.in_db_pass_json.append(self.new_pass_json[index].copy())
+                return requests.post(url, json.dumps(self.new_pass_json[index]), headers=headers).json()
+            else:
+                print(self.new_pass_json[index])
+                raise ValueError("Unable to submit")
 
     @staticmethod
     def visibility_btn_clicked(pass_container):

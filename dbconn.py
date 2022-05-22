@@ -1,9 +1,7 @@
 import mysql.connector
-import datetime
 from settings import password_table, users_table
 import datetime
 
-FORMAT = "%d-%m-%Y"
 near_days = 3
 
 
